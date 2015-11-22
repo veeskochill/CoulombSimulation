@@ -22,8 +22,8 @@ def CoulombForce(q1, q2, p1, p2):
 	#return r
 	return [(Coulomb_k*q1*q2/r_squared)*vi for vi in r]
 
-def SaveRingData(ring_radius):
-	csv = np.genfromtxt('constantdist.csv', delimiter = ',')
+def SaveRingData(filename, ring_radius):
+	csv = np.genfromtxt(filename, delimiter = ',')
 	angle = csv[1:,0]
 	value = csv[1:,1]
 	myfile = open("ringdata.csv","w")

@@ -10,7 +10,20 @@ import csv
 
 # Simplest possible test case
 # a point particle, and a point charge.
+step = 0.01
+
 Coulomb_k = 9.0#*(10**7)
+
+def SaveRingData(filename, ring_radius):
+	csv = np.genfromtxt(filename, delimiter = ',')
+	angle = csv[1:,0]
+	value = csv[1:,1]
+	myfile = open("ringdata.csv","w")
+	for a,v in zip(angle, value):
+		#print math.cos(math.radians(a)), math.sin(math.radians(a)), v
+		myfile.write("%.2f, %.2f, %.2f\n" % (ring_radius*math.cos(math.radians(a)), ring_radius*math.sin(math.radians(a)), v))
+	myfile.close()
+
 def GetRingData(src_file):
 	csv = np.genfromtxt(src_file, delimiter = ',')
 	angle = np.array(csv[1:,0])
@@ -18,62 +31,93 @@ def GetRingData(src_file):
 	return angle, value
 
 def CoulombForce(q1, q2, p1, p2):
-	r = p2 - p1 #[b-a for a,b in zip(p1,p2)]
-	#print("(%.2f, %.2f), (%.2f, %.2f), (%.2f, %.2f)\n" % (p2[0],p2[1], p1[0],p1[1], r[0],r[1]))
-	r_squared = r.dot(r)*np.linalg.norm(r)#sum([a*a*abs(a) for a in r])
-	#print r_squared
-	return (r*Coulomb_k*q1*q2)/r_squared #[(Coulomb_k*q1*q2/r_squared)*vi for vi in r]
+	r = p2 - p1
+	r_squared = r.dot(r)*np.linalg.norm(r)
+	return (r*Coulomb_k*q1*q2)/r_squared
 
-def run_simation(user_mass, user_charge, user_pos, user_vel, ring_radius, angle, value, n_steps):
-	step = 0.001
+def CalculateForce(user_charge, value, user_pos, angle, ring_radius):
+	total_force = np.array([0,0])
+	for a,v in zip(angle, value):
+		ring_pos = np.array([ring_radius*math.cos(math.radians(a)),ring_radius*math.sin(math.radians(a))])
+		total_force = total_force+CoulombForce(user_charge,v, user_pos, ring_pos)
+	return total_force
+
+def simulate_step(user_mass, user_charge, user_pos, user_vel, ring_radius, angle, value, step):
+		user_accel = CalculateForce(user_charge, value, user_pos, angle, ring_radius)/user_mass
+		p_new = user_pos + user_vel*step + 0.5*user_accel*step*step
+		future_accel = CalculateForce(user_charge, value, p_new, angle, ring_radius)/user_mass
+		user_vel = user_vel + 0.5*step*(user_accel+ future_accel)
+		return p_new, user_vel
+
+def run_simution(user_mass, user_charge, user_pos, user_vel, ring_radius, angle, value, n_steps):
 	print user_pos
-	p_new = user_pos
+	new_pos = user_pos
+	new_vel = user_vel
 	myfile = open("output.csv","w")
-	p_old = p_new
 	for ui in range(n_steps):
-		apply_force = CoulombForce(user_charge, value, p_new, np.array([0, 0]))
-		#print ["%.2f " % el for el in p_new]
-		# explicit eule
-		#print apply_force
-
-		#print("%.2f, %.2f\n" % (p_new[0], p_new[1]))
-
-		'''if ui == 0:
-			user_accel = apply_force/user_mass
-			myfile.write("%.2f, %.2f, %.2f, %.2f\n" % (p_new[0], p_new[1],apply_force[0], apply_force[1]))
-			p_new = p_new + 0.5*user_accel*step*step
-			user_vel = user_vel + user_accel*step
-		'''
-		#else:
-		user_accel = apply_force/user_mass
-		myfile.write("%.2f, %.2f, %.2f, %.2f\n" % (p_new[0], p_new[1],apply_force[0]/20, apply_force[1]/20))
-		p_new = p_new + user_vel*step + 0.5*user_accel*step*step
-		user_vel = user_vel + 0.5*step*(user_accel+CoulombForce(user_charge, value, p_new, np.array([0, 0])))
-		
-		'''
-			user_accel = apply_force/user_mass
-			myfile.write("%.2f, %.2f, %.2f, %.2f\n" % (p_new[0], p_new[1],apply_force[0], apply_force[1]))
-			temp = p_new
-			p_new = 2*p_new - p_old + user_accel*step*step
-			p_old = temp
-		'''
-#		print p_new, user_vel, user_accel
+		new_pos, new_vel = simulate_step(user_mass, user_charge, new_pos, new_vel, ring_radius, angle, value, step)
+		myfile.write("%d, %.2f, %.2f\n" % (ui, new_pos[0], new_pos[1]))
+	return new_pos, new_vel
 
 
-user_pos = np.array([0, 1.5])
-user_mass = 1
-user_charge = 1
-ring_radius = 0
+'''
+# One Element tests
+{
+	print "Test 1: complete the circle"
+	user_pos = np.array([0, 1.5])
+	user_mass = 1
+	user_charge = 1
+	ring_radius = 0
 
-# Load data
-angle, value = GetRingData('singulardist.csv')
-print math.sqrt(Coulomb_k*user_charge*value/np.linalg.norm(user_pos)/user_mass)
-user_vel = np.array([math.sqrt(Coulomb_k*user_charge*value/np.linalg.norm(user_pos)/user_mass), 0])
+	# Load data
+	angle, value = GetRingData('singulardist.csv')
+	print math.sqrt(Coulomb_k*user_charge*value/np.linalg.norm(user_pos)/user_mass)
+	user_vel = np.array([math.sqrt(Coulomb_k*user_charge*value/np.linalg.norm(user_pos)/user_mass), 0])
 
-run_simation(user_mass, user_charge, user_pos, user_vel, ring_radius, angle, value, 100000)
+	time_limit = 2.0*math.pi*np.linalg.norm(user_pos)/np.linalg.norm(user_vel)/step
+	print time_limit
+
+	final_pos, final_vel = run_simution(user_mass, user_charge, user_pos, user_vel, ring_radius, angle, value, int(time_limit))
+	# expect. final position to equal first position.
+	print user_pos, final_pos, np.linalg.norm(final_pos - user_pos)
+}
+'''
+
+'''
+{
+	print "Test 2: Conserves Energy"
+	user_pos = np.array([0, 10])
+	user_mass = 1
+	user_charge = 1
+	ring_radius = 0
+
+	# Load data
+	angle, value = GetRingData('singulardist.csv')
+	user_vel = np.array([0, 0])
 
 
+	final_pos, final_vel = run_simution(user_mass, user_charge, user_pos, user_vel, ring_radius, angle, value, 10)
+	print Coulomb_k*value*user_charge*(1.0/np.linalg.norm(user_pos) - 1.0/np.linalg.norm(final_pos)) - 0.5*user_mass*np.linalg.norm(final_vel)**2
+}
+'''
 
+# Two element tests
+{
+	print "Test 3: find the well"
+	user_mass = 1
+	user_charge = -1
+	ring_radius = 5
+	user_pos = np.array([0, ring_radius*(-1.0+ 2.0/(1.0+math.sqrt(2.0)))])
+	print user_pos
+	angle, value = GetRingData('bipolardist.csv')
+	SaveRingData('bipolardist.csv', ring_radius)
+
+	user_vel = np.array([0, 0])
+
+	final_pos, final_vel = run_simution(user_mass, user_charge, user_pos, user_vel, ring_radius, angle, value, 200)
+
+	print np.linalg.norm(final_pos - user_pos), np.linalg.norm(final_vel- user_vel)
+}
 
 #for a constant charge
 
