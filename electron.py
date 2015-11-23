@@ -13,6 +13,7 @@ step = 0.01
 Coulomb_k = 9.0#*(10**7)
 
 def CoulombForce(q1, q2, p1, p2):
+	#print q1, q2, p1, p2
 	r = p2 - p1
 	r_squared = r.dot(r)*np.linalg.norm(r)
 	return (r*Coulomb_k*q1*q2)/r_squared
@@ -22,6 +23,7 @@ def CalculateForce(user_charge, user_pos, my_ring):
 	for a,v in my_ring.charge_density.iteritems():
 		ring_pos = np.array([my_ring.radius*math.cos(math.radians(a)),my_ring.radius*math.sin(math.radians(a))])
 		total_force = total_force+CoulombForce(user_charge,v, user_pos, ring_pos)
+		#print total_force
 	return total_force
 '''
 
@@ -93,7 +95,7 @@ class Particle:
 		self.accel = accel
 
 	def step_forward(self):
-		return Propagator.step_forward(self, Ring.GetRing())
+		return Propagator.step_forward(self)
 
 
 # Responsible for storage of ring properties
@@ -110,7 +112,6 @@ class Ring:
 		angles = np.array(csv[1:,0])
 		values = np.array(csv[1:,1])
 		self.charge_density = dict(zip(angles, values))
-		print self.charge_density
 
 	# Sloppy Singleton
 	@classmethod
@@ -123,7 +124,7 @@ def run_simulation(my_system, n_steps):
 	myfile = open("output.csv","w")
 	for ui in range(n_steps):
 		new_state = my_system.step_forward()
-	#	print "%.2f, %.2f, %.2f\n" % (new_state.time, new_state.particle.position[0], new_state.particle.position[1])
+		#print "%.2f, %.2f, %.2f\n" % (new_state.time, new_state.particle.position[0], new_state.particle.position[1])
 		myfile.write("%.2f, %.2f, %.2f\n" % (new_state.time, new_state.particle.position[0], new_state.particle.position[1]))
 	return new_state.particle.position, new_state.particle.velocity
 
