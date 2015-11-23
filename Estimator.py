@@ -1,3 +1,8 @@
+# Numerical methods should be separated from the system itself. 
+# They need to act on the system from outside.
+# As a python module I can update the timestep, dt
+# and even the method used between simulation steps.
+
 import electron
 
 # Responsible for implementing numerical methods
@@ -5,7 +10,6 @@ dt = 0.01
 method = 'leapfrog'
 my_ring = None
 
-# Numerical methods should be separated from the system itself. 
 def leapfrog(my_particle):
 	x_n = my_particle.position
 	v_n = my_particle.velocity

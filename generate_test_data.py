@@ -20,7 +20,7 @@ def polarized_density(charge):
 	#for ui in range(180):
 	fp.write("%d, %.2f\n" % (270, eval(charge)/2))
 
-
+# This is intended to provide command line options for generating test data
 def main(argv):
 	try:
 		opts, args = getopt.getopt(argv, "p::",["const=","polar=","sing="])
