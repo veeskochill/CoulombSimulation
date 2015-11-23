@@ -3,7 +3,7 @@ import ast
 import csv
 import math
 import numpy as np
-import Propagator
+import Estimator
 
 Coulomb_k = 9.0#*(10**7)
 
@@ -61,7 +61,7 @@ class Particle:
 		self.accel = accel
 
 	def step_forward(self):
-		return Propagator.step_forward(self)
+		return Estimator.step_forward(self)
 
 
 # Responsible for storage of ring properties
