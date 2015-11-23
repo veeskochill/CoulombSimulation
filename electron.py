@@ -1,8 +1,3 @@
-'''
- keep it simple.
- don't worry about mag fields, or step-size error
-'''
-
 import sys
 
 import ast
@@ -11,16 +6,36 @@ import csv
 import math
 import numpy as np
 
-Coulomb_k = 1.0
+
+step = 0.01
+
+Coulomb_k = 9.0#*(10**7)
+
+class Particle:
+	accel = np.array([0,0])
+
+	def __init__(self, mass, charge, position, velocity):
+		self.mass = mass
+		self.charge =charge
+		self.position = position
+		self.velocity = velocity
 
 
-# return the CoulombForce between two charged particles\
-def CoulombForce(q1, q2, p1, p2):
-	r = [b-a for a,b in zip(p1,p2)]
-	#print("(%.2f, %.2f), (%.2f, %.2f), (%.2f, %.2f)\n" % (p2[0],p2[1], p1[0],p1[1], r[0],r[1]))
-	r_squared = sum([a*a*abs(a) for a in r])
-	#return r
-	return [(Coulomb_k*q1*q2/r_squared)*vi for vi in r]
+class Ring:
+	radius = 0
+	charge_density = {} #angle, coulomb/cm
+
+	def __init__(self, radius):
+		self.radius = radius
+
+	def ReadChargeDist(self, src_file):
+		csv = np.genfromtxt(src_file, delimiter = ',')
+		angles = np.array(csv[1:,0])
+		values = np.array(csv[1:,1])
+		self.charge_density = dict(zip(angles, values))
+		print self.charge_density
+
+
 
 def SaveRingData(filename, ring_radius):
 	csv = np.genfromtxt(filename, delimiter = ',')
@@ -28,25 +43,44 @@ def SaveRingData(filename, ring_radius):
 	value = csv[1:,1]
 	myfile = open("ringdata.csv","w")
 	for a,v in zip(angle, value):
-		print math.cos(math.radians(a)), math.sin(math.radians(a)), v
+		#print math.cos(math.radians(a)), math.sin(math.radians(a)), v
 		myfile.write("%.2f, %.2f, %.2f\n" % (ring_radius*math.cos(math.radians(a)), ring_radius*math.sin(math.radians(a)), v))
 	myfile.close()
 
-
 def GetRingData(src_file):
 	csv = np.genfromtxt(src_file, delimiter = ',')
-	angle = csv[1:,0]
-	value = csv[1:,1]
+	angle = np.array(csv[1:,0])
+	value = np.array(csv[1:,1])
 	return angle, value
 
-def CalculateForce(user_charge, user_pos, ring_radius, angle, value):
-	#angle, value = GetRingData('constantdist.csv')
-	total_force =[0,0]
-	for a,v in zip(angle, value):
-		ring_pos = [ring_radius*math.cos(math.radians(a)),ring_radius*math.sin(math.radians(a))]
-		total_force = [a+b for a,b in zip(total_force,CoulombForce(user_charge,v, user_pos, ring_pos))]
+def CoulombForce(q1, q2, p1, p2):
+	r = p2 - p1
+	r_squared = r.dot(r)*np.linalg.norm(r)
+	return (r*Coulomb_k*q1*q2)/r_squared
+
+def CalculateForce(user_charge, user_pos, my_ring):
+	total_force = np.array([0,0])
+	for a,v in my_ring.charge_density.iteritems():
+		ring_pos = np.array([my_ring.radius*math.cos(math.radians(a)),my_ring.radius*math.sin(math.radians(a))])
+		total_force = total_force+CoulombForce(user_charge,v, user_pos, ring_pos)
 	return total_force
 
+def simulate_step(my_particle, my_ring, step):
+		my_particle.accel = CalculateForce(my_particle.charge, my_particle.position, my_ring)/my_particle.mass
+		p_new = my_particle.position + my_particle.velocity*step + 0.5*my_particle.accel*step*step
+		future_accel = CalculateForce(my_particle.charge, p_new, my_ring)/my_particle.mass
+		my_particle.velocity = my_particle.velocity + 0.5*step*(my_particle.accel+ future_accel)
+		return p_new, my_particle.velocity
+
+def run_simution(my_particle, my_ring, n_steps):
+	print my_particle.position
+	myfile = open("output.csv","w")
+	for ui in range(n_steps):
+		new_pos, new_vel = simulate_step(my_particle, my_ring, step)
+		myfile.write("%d, %.2f, %.2f\n" % (ui, my_particle.position[0], my_particle.position[1]))
+	return my_particle.position, my_particle.velocity
+
+'''
 def main(user_mass, user_charge, user_pos, user_vel, ring_radius, angles, values):
 	#user_charge = eval(raw_input("input charge: "))
 	#user_pos = [px[0],py[0]]#eval(raw_input("input '[x,y]': "))
@@ -73,15 +107,14 @@ def main(user_mass, user_charge, user_pos, user_vel, ring_radius, angles, values
 		user_vel = [v + a*step for v, a in zip(user_vel, user_accel)]
 		# print ["%.2f " % el for el in p_new]
 		#myfile.write("%.2f, %.2f, %.2f, %.2f\n" % (p_new[0], p_new[1],apply_force[0]/20, apply_force[1]/20))
-		'''for ui, el in enumerate(p_new):
-			if ui < len(p_new)-1:
-				myfile.write("%.2f, " % el)
-			else:
-				myfile.write("%.2f, %.2f, %.2f\n" % (el, apply_force[0], apply_force[1]))
-		'''
-#		print type(user_charge_pos)
+		#for ui, el in enumerate(p_new):
+		#	if ui < len(p_new)-1:
+		#		myfile.write("%.2f, " % el)
+		#	else:
+		#		myfile.write("%.2f, %.2f, %.2f\n" % (el, apply_force[0], apply_force[1]))
+	#		print type(user_charge_pos)
 
-
+'''
 
 if __name__ == "__main__":
 	num_arg = len(sys.argv)
