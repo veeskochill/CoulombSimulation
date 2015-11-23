@@ -64,12 +64,17 @@ print user_pos
 #angle, value = electron.GetRingData('bipolardist.csv')
 #electron.SaveRingData('bipolardist.csv', ring_radius)
 
-user_vel = np.array([0, 0])
-my_particle = electron.Particle(user_mass, user_charge, user_pos, user_vel)
 my_ring = electron.Ring(ring_radius)
 my_ring.ReadChargeDist('bipolardist.csv')
 
-final_pos, final_vel = electron.run_simution(my_particle, my_ring, 200)
+user_vel = np.array([0, 0])
+user_accel = electron.CalculateForce(user_charge, user_pos, my_ring)
+my_particle = electron.Particle(user_mass, user_charge, user_pos, user_vel, user_accel)
+
+my_state = electron.State(my_particle, 0)
+my_system = electron.System(my_state)
+
+final_pos, final_vel = electron.run_simulation(my_system, 200)
 
 print np.linalg.norm(final_pos - user_pos), np.linalg.norm(final_vel- user_vel)
 
