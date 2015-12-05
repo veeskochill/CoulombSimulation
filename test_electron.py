@@ -16,6 +16,7 @@ class ElectronTestCase(unittest.TestCase):
 
 	# moving at a constant velocity, along a circular path of radius 10, 
 	# it should take exactly d = v*t => t = d/v => t = 2*pi*radius/mag(init_vel)
+	
 	def test_completes_the_circle(self):
 		gen_data.singular('5.0')
 
@@ -43,7 +44,7 @@ class ElectronTestCase(unittest.TestCase):
 		my_state = electron.State(my_particle, 0)
 		my_system = electron.System(my_state)
 
-		final_pos, final_vel = electron.run_simulation(my_system, int(time_limit))
+		final_pos, final_vel = electron.run_simulation(my_system, int(time_limit), "test1.csv")
 
 		# Expect final position to equal first position.
 		print np.linalg.norm(final_pos - user_pos)
@@ -78,10 +79,11 @@ class ElectronTestCase(unittest.TestCase):
 		my_state = electron.State(my_particle, 0)
 		my_system = electron.System(my_state)
 
-		final_pos, final_vel = electron.run_simulation(my_system, 100)
+		final_pos, final_vel = electron.run_simulation(my_system, 100, "test2.csv")
 		print Coulomb_k*(my_ring.charge_density[0])*user_charge*(1.0/np.linalg.norm(user_pos) - 1.0/np.linalg.norm(final_pos)) - 0.5*user_mass*np.linalg.norm(final_vel)**2
 		#final_pos, final_vel = run_simution(user_mass, user_charge, user_pos, user_vel, ring_radius, angle, value, 10)
 		self.assertTrue(math.fabs(Coulomb_k*(my_ring.charge_density[0])*user_charge*(1.0/np.linalg.norm(user_pos) - 1.0/np.linalg.norm(final_pos)) - 0.5*user_mass*np.linalg.norm(final_vel)**2) < 0.1)
+	
 
 	# In the presence of a few (in this case 2) charges, a point with no net force should exist
 	def test_for_minimum(self):
@@ -89,8 +91,8 @@ class ElectronTestCase(unittest.TestCase):
 
 		print "Test 3: find the well"
 		acceptable_error = 0.001
-		user_mass = 1.0
-		user_charge = -1.0
+		user_mass = -1.0
+		user_charge = 1.0
 		ring_radius = 5.0
 		user_pos = np.array([0, ring_radius*(-1.0+ 2.0/(1.0+math.sqrt(2.0)))])
 
@@ -101,10 +103,12 @@ class ElectronTestCase(unittest.TestCase):
 		user_accel = electron.CalculateForce(user_charge, user_pos, my_ring)
 		my_particle = electron.Particle(user_mass, user_charge, user_pos, user_vel, user_accel)
 
+		Estimator.my_ring = my_ring
+
 		my_state = electron.State(my_particle, 0)
 		my_system = electron.System(my_state)
 
-		final_pos, final_vel = electron.run_simulation(my_system, 1000)
+		final_pos, final_vel = electron.run_simulation(my_system, 1000, "test3.csv")
 
 		print np.linalg.norm(final_pos - user_pos), np.linalg.norm(final_vel- user_vel)
 		# same position

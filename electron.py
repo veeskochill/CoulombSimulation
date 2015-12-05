@@ -5,7 +5,7 @@ import math
 import numpy as np
 import Estimator
 
-Coulomb_k = 9.0#*(10**7)
+Coulomb_k = 9.0#*(10**9)
 
 def CoulombForce(q1, q2, p1, p2):
 	r = p2 - p1
@@ -79,9 +79,9 @@ class Ring:
 		values = np.array(csv[1:,1])
 		self.charge_density = dict(zip(angles, values))
 
-def run_simulation(my_system, n_steps):
+def run_simulation(my_system, n_steps, output_file):
 
-	myfile = open("output.csv","w")
+	myfile = open(output_file,"w")
 	for ui in range(n_steps):
 		new_state = my_system.step_forward()
 		myfile.write("%.2f, %.2f, %.2f\n" % (new_state.time, new_state.particle.position[0], new_state.particle.position[1]))
